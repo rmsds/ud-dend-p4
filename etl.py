@@ -34,30 +34,15 @@ def process_song_data(spark, input_data, output_data):
         # we are reading local files
         import glob
         glob_pattern = "{}/song_data/*/*/*/*.json".format(input_data)
-        song_data = glob.glob(glob_pattern) 
-        if 0 == len(log_data):
-            print("[ERROR] could not find any log data files:'{}'".format(glob_pattern))
+        song_data = glob.glob(glob_pattern)
+        if 0 == len(song_data):
+            print("[ERROR] could not find any log data files:'{}'".format(
+                glob_pattern)
+            )
             exit(0)
 
-    # read song data file
-    ##import pyspark.sql.types as pstypes
-    ##songSchema = pstypes.StructType([
-    ##    pstypes.StructField("num_songs",        pstypes.IntegerType()),
-    ##    pstypes.StructField("artist_id",        pstypes.StringType()),
-    ##    pstypes.StructField("artist_latitude",  pstypes.FloatType()),
-    ##    pstypes.StructField("artist_longitude", pstypes.FloatType()),
-    ##    pstypes.StructField("artist_location",  pstypes.StringType()),
-    ##    pstypes.StructField("artist_name",      pstypes.StringType()),
-    ##    pstypes.StructField("song_id",          pstypes.StringType()),
-    ##    pstypes.StructField("title",            pstypes.StringType()),
-    ##    pstypes.StructField("duration",         pstypes.FloatType()),
-    ##    pstypes.StructField("year",             pstypes.IntegerType()),
-    ##])
-    ##df = spark.read.json(*song_data, schema=songSchema)
     df = spark.read.json(song_data)
     print('DF.COUNT', df.count())
-    ##df.printSchema()
-    ##df.show(5)
 
     # extract columns to create songs table
     songs_table = df.select(
@@ -67,7 +52,9 @@ def process_song_data(spark, input_data, output_data):
             'year',
             'duration'
     ).dropDuplicates()
-    print('SONGS.COUNT', songs_table.count())
+    print("[INFO] saving information for {} songs".format(songs_table.count()))
+    print("[INFO] songs_table schema:")
+    songs_table.printSchema()
 
     # write songs table to parquet files partitioned by year and artist
     songs_table.write.parquet(
@@ -84,7 +71,11 @@ def process_song_data(spark, input_data, output_data):
             df.artist_latitude.alias('latitude'),
             df.artist_longitude.alias('longitude')
     ).dropDuplicates()
-    print('ARTISTS.COUNT', artists_table.count())
+    print("[INFO] saving information for {} artists".format(
+        artists_table.count())
+    )
+    print("[INFO] artists_table schema:")
+    artists_table.printSchema()
 
     # write artists table to parquet files
     artists_table.write.parquet(
@@ -114,32 +105,68 @@ def process_log_data(spark, input_data, output_data):
 
     # read log data file
     df = spark.read.json(log_data)
-    print('DF.COUNT', df.count())
+    print("[INFO] read {} events".format(df.count()))
+    print("[INFO] detected schema:")
+    df.printSchema()
+    df.show(5)
 
-    return
     # filter by actions for song plays
-    df = ''
+    df = df.filter(df.page == 'NextSong')
+    print("[INFO] selected {} 'NextSong' events".format(df.count()))
 
     # extract columns for users table
-    artists_table = ''
+    users_table = df.select(
+            df.userId.alias('user_id'),
+            df.firstName.alias('first_name'),
+            df.lastName.alias('last_name'),
+            df.gender,
+            df.level
+    ).dropDuplicates()
+    print("[INFO] saving information for {} users".format(users_table.count()))
+    print("[INFO] users_table schema:")
+    users_table.printSchema()
 
     # write users table to parquet files
-    artists_table
-
-    # create timestamp column from original timestamp column
-    get_timestamp = udf()
-    df = ''
+    users_table.write.parquet(
+            "{}/users".format(output_data),
+            mode='overwrite'
+    )
 
     # create datetime column from original timestamp column
-    get_datetime = udf()
-    df = ''
+    import pyspark.sql.types as pstypes
+    get_datetime = udf(
+            lambda ts: datetime.fromtimestamp(ts/1000.0),
+            pstypes.TimestampType()
+    )
+    df = df.withColumn('datetime', get_datetime(df.ts))
+    # df.printSchema()
+    # df.show(2)
 
     # extract columns to create time table
-    time_table = ''
+    time_table = df.select(
+            df.datetime.alias('start_time'),
+            hour(df.datetime).alias('hour'),
+            dayofmonth(df.datetime).alias('day'),
+            weekofyear(df.datetime).alias('week'),
+            month(df.datetime).alias('month'),
+            year(df.datetime).alias('year'),
+            date_format(df.datetime, 'E').alias('weekday')
+    ).dropDuplicates()
+    print("[INFO] saving information for {} timestamps".format(
+        time_table.count())
+    )
+    print("[INFO] time_table schema:")
+    time_table.printSchema()
+    time_table.show(5)
 
     # write time table to parquet files partitioned by year and month
-    time_table
+    time_table.write.parquet(
+            "{}/times".format(output_data),
+            partitionBy=['year', 'month'],
+            mode='overwrite'
+    )
 
+    return
     # read in song data to use for songplays table
     song_df = ''
 
