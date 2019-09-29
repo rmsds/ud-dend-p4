@@ -1,8 +1,10 @@
 import configparser
 from datetime import datetime
 import os
+import boto3
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, col
+from pyspark.sql.functions import udf
+from pyspark.sql.functions import monotonically_increasing_id
 from pyspark.sql.functions \
         import year, month, dayofmonth, hour, weekofyear, date_format
 
@@ -22,14 +24,45 @@ def create_spark_session():
     return spark
 
 
+def list_matching_in_bucket(
+        bucket_url,
+        prefix,
+        suffix='.json',
+        region='us-west-2'
+):
+    if '://' in bucket_url:
+        bucket_name = bucket_url.split('://')[1].split('/')[0]
+    else:
+        exit(0)
+
+    client = boto3.client('s3', region_name=region)
+    paginator = client.get_paginator('list_objects')
+    operation_parameters = {'Bucket': bucket_name,
+                            'Prefix': prefix}
+    page_iterator = paginator.paginate(**operation_parameters)
+
+    found = []
+    for page in page_iterator:
+        a = [item['Key']
+             for item in page['Contents']
+             if item['Key'].endswith(suffix)
+             ]
+        found.extend(a)
+
+    found_prefix = "{}{}".format(
+        bucket_url,
+        '/' if not bucket_url.endswith('/') else '',
+    )
+    full_found = [found_prefix + i for i in found]
+
+    return full_found
+
+
 def process_song_data(spark, input_data, output_data):
     # get filepath to song data file
     if input_data.startswith('s3a://'):
         # we are reading data from S3
-        song_data = "{}{}song_data".format(
-                '/' if input_data.endswith('/') else '',
-                input_data
-        )
+        song_data = list_matching_in_bucket(input_data, 'song_data/A/R')
     else:
         # we are reading local files
         import glob
@@ -88,10 +121,7 @@ def process_log_data(spark, input_data, output_data):
     # get filepath to log data file
     if input_data.startswith('s3a://'):
         # we are reading data from S3
-        log_data = "{}{}log_data".format(
-                '/' if input_data.endswith('/') else '',
-                input_data
-        )
+        log_data = list_matching_in_bucket(input_data, 'log_data/')
     else:
         # we are reading local files
         import glob
@@ -166,25 +196,69 @@ def process_log_data(spark, input_data, output_data):
             mode='overwrite'
     )
 
-    return
     # read in song data to use for songplays table
-    song_df = ''
+    # songplay_id
+    # start_time    @ log
+    # user_id       @ log
+    # level         @ log
+    # song_id       @ songs
+    # artist_id     @ artists
+    # session_id    @ log
+    # location      @ log
+    # user_agent    @ log
+    song_df = spark.read.parquet("{}/songs".format(output_data))
+    artist_df = spark.read.parquet("{}/artists".format(output_data))
 
     # extract columns from joined song and log datasets to create songplays
     # table
-    songplays_table = ''
+    songplays_table = df.join(
+            artist_df,
+            artist_df.name == df.artist,
+            'inner'
+    ).join(
+            song_df,
+            [
+                song_df.artist_id == artist_df.artist_id,
+                song_df.title == df.song,
+            ],
+            'inner'
+    ).select(
+            monotonically_increasing_id().alias('songplay_id'),
+            df.datetime.alias('start_time'),
+            df.userId.alias('user_id'),
+            df.level.alias('level'),
+            song_df.song_id,
+            artist_df.artist_id,
+            df.sessionId.alias('session_id'),
+            df.location.alias('location'),
+            df.userAgent.alias('user_agent'),
+            # needed for writing the tables partitioned
+            month(df.datetime).alias('month'),
+            year(df.datetime).alias('year'),
+    )
+    print("[INFO] saving information for {} songplays".format(
+        songplays_table.count())
+    )
+    print('[INFO] songplays_table schema:')
+    songplays_table.printSchema()
+    songplays_table.show(5)
 
     # write songplays table to parquet files partitioned by year and month
-    songplays_table
+    songplays_table.write.parquet(
+            "{}/songplays".format(output_data),
+            partitionBy=['year', 'month'],
+            mode='overwrite'
+    )
 
 
 def main():
     spark = create_spark_session()
-    input_data = "s3a://udacity-dend/"
     input_data = 'data/'
-    output_data = "output-data/"
+    input_data = 's3a://udacity-dend/'
+    output_data = 'output-data/'
+    output_data = 's3a://ud-dend-proj4-rs-output/'
 
-    # process_song_data(spark, input_data, output_data)
+    process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
 
 
