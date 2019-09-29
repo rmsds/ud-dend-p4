@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import configparser
 from datetime import datetime
 import os
@@ -30,6 +31,14 @@ def list_matching_in_bucket(
         suffix='.json',
         region='us-west-2'
 ):
+    ''' Lists files in a bucket matching a prefix/suffix
+
+    Given a bucket url and prefix will return a list of all files
+    matching under that prefix and matching an optional suffix
+    ('.json' by default). The region can also be specified.
+
+    The list of results includes the prefix.
+    '''
     if '://' in bucket_url:
         bucket_name = bucket_url.split('://')[1].split('/')[0]
     else:
@@ -59,6 +68,13 @@ def list_matching_in_bucket(
 
 
 def process_song_data(spark, input_data, output_data):
+    ''' Read all song data and write artists and songs tables.
+
+    Song data is read from any json files found under `input_data`/song_data.
+    
+    Data can be read and written from/to local files or S3 buckets ('s3a://').
+    Output data is written as parquet files.  
+    '''
     # get filepath to song data file
     if input_data.startswith('s3a://'):
         # we are reading data from S3
@@ -118,6 +134,13 @@ def process_song_data(spark, input_data, output_data):
 
 
 def process_log_data(spark, input_data, output_data):
+    ''' Read log data and write users, time and songplays tables.
+
+    Log data is read from any json files found under `input_data`/log_data.
+    
+    Data can be read and written from/to local files or S3 buckets ('s3a://').
+    Output data is written as parquet files.  
+    '''
     # get filepath to log data file
     if input_data.startswith('s3a://'):
         # we are reading data from S3
@@ -197,15 +220,6 @@ def process_log_data(spark, input_data, output_data):
     )
 
     # read in song data to use for songplays table
-    # songplay_id
-    # start_time    @ log
-    # user_id       @ log
-    # level         @ log
-    # song_id       @ songs
-    # artist_id     @ artists
-    # session_id    @ log
-    # location      @ log
-    # user_agent    @ log
     song_df = spark.read.parquet("{}/songs".format(output_data))
     artist_df = spark.read.parquet("{}/artists".format(output_data))
 
@@ -253,9 +267,12 @@ def process_log_data(spark, input_data, output_data):
 
 def main():
     spark = create_spark_session()
-    input_data = 'data/'
+    
+    # input_data/output_data can be either on the local filesystem or
+    # in S3 buckets (`s3a://`)
+    # input_data = 'data/'
     input_data = 's3a://udacity-dend/'
-    output_data = 'output-data/'
+    # output_data = 'output-data/'
     output_data = 's3a://ud-dend-proj4-rs-output/'
 
     process_song_data(spark, input_data, output_data)
