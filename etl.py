@@ -2,7 +2,6 @@
 import configparser
 from datetime import datetime
 import os
-import boto3
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import udf
 from pyspark.sql.functions import monotonically_increasing_id
@@ -39,6 +38,8 @@ def list_matching_in_bucket(
 
     The list of results includes the prefix.
     '''
+    import boto3
+
     if '://' in bucket_url:
         bucket_name = bucket_url.split('://')[1].split('/')[0]
     else:
@@ -71,9 +72,9 @@ def process_song_data(spark, input_data, output_data):
     ''' Read all song data and write artists and songs tables.
 
     Song data is read from any json files found under `input_data`/song_data.
-    
+
     Data can be read and written from/to local files or S3 buckets ('s3a://').
-    Output data is written as parquet files.  
+    Output data is written as parquet files.
     '''
     # get filepath to song data file
     if input_data.startswith('s3a://'):
@@ -137,9 +138,9 @@ def process_log_data(spark, input_data, output_data):
     ''' Read log data and write users, time and songplays tables.
 
     Log data is read from any json files found under `input_data`/log_data.
-    
+
     Data can be read and written from/to local files or S3 buckets ('s3a://').
-    Output data is written as parquet files.  
+    Output data is written as parquet files.
     '''
     # get filepath to log data file
     if input_data.startswith('s3a://'):
@@ -267,7 +268,7 @@ def process_log_data(spark, input_data, output_data):
 
 def main():
     spark = create_spark_session()
-    
+
     # input_data/output_data can be either on the local filesystem or
     # in S3 buckets (`s3a://`)
     # input_data = 'data/'
