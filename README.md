@@ -11,12 +11,12 @@ This is implemented using Spark.
 * Edit `etl.py` to point to it (change `input_data` and `output_data` inside `def main()`).
   * to use/create a remote dataset change the corresponding variable to point to the bucket (see the next session for an example)
 * Prepare a `dl.cfg` file with your AWS credentials (see `dl.cfg.orig` for a template)
-* Start a `jupyter/pyspark-notebook`
-  `docker run --name pyspark-dend --rm -p 8888:8888 -v "$PWD":/home/jovyan/work jupyter/pyspark-notebook`
-* Install any missing required Python packages:
-  `docker exec pyspark-dend pip install -r requirements.txt`
-* Execute the script:
-  `docker exec pyspark-dend python etl.py`
+* Start a `jupyter/pyspark-notebook`  
+`docker run --name pyspark-dend --rm -p 8888:8888 -v "$PWD":/home/jovyan/work jupyter/pyspark-notebook`
+* Install any missing required Python packages  
+`docker exec pyspark-dend pip install -r requirements.txt`
+* Execute the script  
+`docker exec pyspark-dend python etl.py`
 
 
 ## Run on Amazon EMR/Notebook against a dataset on Amazon S3
@@ -26,7 +26,7 @@ This is implemented using Spark.
 * Edit `etl.py` to point to your input and output data sets. The variables must start with `s3a://`. For example:
   * `input_data = 's3a://udadicty-dend/'`
     * note that you need to be in the **us-west-2** region to be able to use this bucket
-    * **Warning**: running this script for all the input `song_data` in this dataset takes an huge amount of time, mostly due to how slow is is to write the _parquet_ tables to an Amazon S3 bucket.
+    * **Warning**: running this script for all the input `song_data` in this dataset takes an long time, mostly due to how slow is is to write the _parquet_ tables to an Amazon S3 bucket.
   * `output_data = 's3a://ud-dend-proj4-rs-output/'`
 
 
