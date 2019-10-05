@@ -14,9 +14,9 @@ This is implemented using Spark.
 * Start a `jupyter/pyspark-notebook`  
 `docker run --name pyspark-dend --rm -p 8888:8888 -v "$PWD":/home/jovyan/work jupyter/pyspark-notebook`
 * Install any missing required Python packages  
-`docker exec pyspark-dend pip install -r requirements.txt`
+`docker exec pyspark-dend pip install -r work/requirements.txt`
 * Execute the script  
-`docker exec pyspark-dend python etl.py`
+`docker exec pyspark-dend bash -c "cd work/; python etl.py"`
 
 
 ## Run on Amazon EMR/Notebook against a dataset on Amazon S3
