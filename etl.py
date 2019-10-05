@@ -169,13 +169,15 @@ def process_log_data(spark, input_data, output_data):
     print("[INFO] selected {} 'NextSong' events".format(df.count()))
 
     # extract columns for users table
-    users_table = df.select(
+    # Note: first sort and then selectively drop duplicates to only store
+    # the most recent user `level`.
+    users_table = df.sort('ts', ascending=False).select(
             df.userId.alias('user_id'),
             df.firstName.alias('first_name'),
             df.lastName.alias('last_name'),
             df.gender,
             df.level
-    ).dropDuplicates()
+    ).dropDuplicates(['user_id', 'first_name', 'last_name', 'gender'])
     print("[INFO] saving information for {} users".format(users_table.count()))
     print("[INFO] users_table schema:")
     users_table.printSchema()
