@@ -235,6 +235,7 @@ def process_log_data(spark, input_data, output_data):
             [
                 song_df.artist_id == artist_df.artist_id,
                 song_df.title == df.song,
+                song_df.duration == df.length,
             ],
             'inner'
     ).select(
