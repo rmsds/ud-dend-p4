@@ -26,7 +26,7 @@ This is implemented using Spark.
 * Edit `etl.py` to point to your input and output data sets. The variables must start with `s3a://`. For example:
   * `input_data = 's3a://udadicty-dend/'`
     * note that you need to be in the **us-west-2** region to be able to use this bucket
-    * **Warning**: running this script for all the input `song_data` in this dataset takes an long time, mostly due to how slow is is to write the _parquet_ tables to an Amazon S3 bucket.
+    * **Warning**: running this script for all the input `song_data` in this dataset takes an long time, mostly due to how slow it is to write the _parquet_ tables to an Amazon S3 bucket (being many small individual files).
   * `output_data = 's3a://ud-dend-proj4-rs-output/'`
 
 
